@@ -6,4 +6,4 @@ The usage on bash is as follows:
 
 python3 Diameter_of_fullerene.py Fullerene.xyz
 
-For any help, contact Muhammad Ali Hashmi at i4hashmi@hotmail.com
+For any help, contact Muhammad Ali Hashmi at compchem394@gmail.com
