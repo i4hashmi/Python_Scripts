@@ -6,24 +6,6 @@ print("#         Script to Extract the Optimized Structure from a Gaussian or OR
 print("#----------------------------------------------------------------------------------------------#")
 print("#----------------------------------------------------------------------------------------------#")
 
-# ASCII FONTS from: http://patorjk.com/software/taag/
-# Font = "Big", "Ivrit"
-def Stamp_Hashmi():
-    print('\n')
-    print(' _____                 _                      _     _')
-    print('|  __ \               | |                    | |   | |')
-    print('| |  | | _____   _____| | ___  _ __   ___  __| |   | |__  _   _')
-    print("| |  | |/ _ \ \ / / _ \ |/ _ \| '_ \ / _ \/ _` |   | '_ \| | | |")
-    print('| |__| |  __/\ V /  __/ | (_) | |_) |  __/ (_| |   | |_) | |_| |')
-    print('|_____/ \___| \_/ \___|_|\___/| .__/ \___|\__,_|   |_.__/ \__, |')
-    print('| |  | |         | |          | |(_)                       __/ |')
-    print('| |__| | __ _ ___| |__  _ __ _|_| _                       |___/')
-    print("|  __  |/ _` / __| '_ \| '_ ` _ \| |")
-    print('| |  | | (_| \__ \ | | | | | | | | |')
-    print('|_|  |_|\__,_|___/_| |_|_| |_| |_|_|')
-
-    print("Dated: November 01, 2016\n")
-
 
 #############################################################################################################
 # This section is for the definition of Dictionaries, Classes, Functions etc.
@@ -69,11 +51,11 @@ class ExtractCoords(object):
         #print("\nExtracting the Molecule from the given output file")
         f = open(file, 'r')
         program = "N/A"
-        # Determine if we're dealing with Gaussian09 or ORCA
+        # Determine if we're dealing with Gaussian16 or ORCA
         for line in f:
-            if line.find("Entering Gaussian System, Link 0=g09") != -1 or line.find("Copyright (c) 1988,1990,1992,1993,1995,1998,2003,2009, Gaussian, Inc.") != -1:
+            if line.find("Entering Gaussian System, Link 0=g16") != -1 or line.find("Copyright (c) 1988-2019, Gaussian, Inc.  All Rights Reserved.") != -1:
                 print("Reading Gaussian output file: ", file, '\n')
-                program = "g09"
+                program = "g16"
                 break
             elif line.find("* O   R   C   A *") != -1:
                 print("Reading ORCA output file: ", file, '\n')
@@ -84,7 +66,7 @@ class ExtractCoords(object):
         # GEOMETRY READING SECTION
         geom = []
         # Read through Gaussian file, read "Standard orientation"
-        if program == "g09":
+        if program == "g16":
             f = open(file, 'r')
             for line in f:
                 if line.find("Standard orientation:") != -1:
@@ -128,6 +110,61 @@ class ExtractCoords(object):
                 i[3] = float(i[3])
             return geom
     #------------------------------ End of Function ------------------------------#
+    # ------------------------------------------------------------------------------#
+    # Define a function to read the input file & extract the SCF energy of molecule #
+    # ------------------------------------------------------------------------------#
+    # ----------------------------- Start of Function -----------------------------#
+    def extractEnergies(self, file):
+        f = open(file, 'r')
+        program = "N/A"
+        # Determine if we're dealing with Gaussian16 or ORCA
+        for line in f:
+            if line.find("Entering Gaussian System, Link 0=g16") != -1 or line.find(
+                    "Copyright (c) 1988-2019, Gaussian, Inc.  All Rights Reserved.") != -1:
+                program = "g16"
+                break
+            elif line.find("* O   R   C   A *") != -1:
+                program = "orca"
+                break
+        f.close()
+        Charge = 0
+        Multiplicity = 1
+        SCF_Energy = "--SCF Energy NOT FOUND--"
+        Zero_point_energy = "--ZPE NOT FOUND--"
+        Gibbs_Energy = "--Delta-G NOT FOUND--"
+        Rxn_Enthalpy = "--Enthalpy NOT FOUND--"
+        SCF_E_Kcal = "--SCF_E_Kcal NOT FOUND--"
+        Gibbs_E_Kcal = "--Gibbs_E_Kcal NOT FOUND--"
+        Zero_point_energy_Kcal = "--ZPE_Kcal NOT FOUND--"
+        Enthalpy_of_Rxn_Kcal = "--Enthalpy_Kcal NOT FOUND--"
+        if program == "g16":
+            f = open(file, 'r')
+            input = f.readlines()
+            #filename = os.path.splitext(os.path.basename(input_file))[0]
+            for line in input:
+                if "Charge =" in line:
+                    complete_line = line.split()
+                    #print("I found the charge as ",int(complete_line[2]))
+                    Charge = int(complete_line[2])
+                    Multiplicity = int(complete_line[5])
+                if "SCF Done:" in line:
+                    complete_line = line.split()
+                    SCF_Energy = float(complete_line[4])
+                    SCF_E_Kcal = float(SCF_Energy) * 627.5095
+                if "Sum of electronic and zero-point Energies" in line:
+                    complete_line = line.split()
+                    Zero_point_energy = complete_line[6]
+                    Zero_point_energy_Kcal = float(Zero_point_energy) * 627.5095
+                if "Sum of electronic and thermal Free Energies" in line:
+                    gibbs_line = line.split()
+                    Gibbs_Energy = gibbs_line[7]
+                    Gibbs_E_Kcal = float(Gibbs_Energy) * 627.5095
+                if "Sum of electronic and thermal Enthalpies" in line:
+                    enthalpies_line = line.split()
+                    Rxn_Enthalpy = enthalpies_line[6]
+                    Enthalpy_of_Rxn_Kcal = float(Rxn_Enthalpy) * 627.5095
+            return [Charge, Multiplicity, SCF_Energy, SCF_E_Kcal, Zero_point_energy, Zero_point_energy_Kcal, Gibbs_Energy,
+                    Gibbs_E_Kcal, Rxn_Enthalpy, Enthalpy_of_Rxn_Kcal]
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% End of Class %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 #=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+#
@@ -146,16 +183,18 @@ class WriteOutputFile(object):
     #----------------------------------------------------#
     def GaussianFile(self, geometry):
         output_file = sys.stdout
-        sys.stdout = open(self.filename+'R'+'.gjf', 'w')
+        sys.stdout = open(self.filename+suffix_filename+'.com', 'w')
         #print('%nprocshared=24') #shared processor line
         #print('%mem=3000mb')#memory line
-        #print('%chk=checkpoint_file.chk') #Checkpoint File)
-        print('#p opt pbe1pbe def2svp empiricaldispersion=gd3bj scf=xqc integral=(grid=ultrafine)\n') #Route card
-        print('Title Card Required\n') #Title Card
-        print('0 1') #Charge and Multiplicity
+        print('%chk='+self.filename+suffix_filename+'.chk') #Checkpoint File)
+        print(Route_Card_Gaussian+'\n') #Route card
+        print('Frequency of the Optimized Molecule\n') #Title Card
+        print(Charge, Multiplicity) #Charge and Multiplicity
         #Below are the xyz coordinates
         for i in geometry:
             print(" {:<3}  {: .8f}  {: .8f}  {: .8f}".format(i[0], i[1], i[2], i[3]))
+        #print('\n'+Gen_Basis)  ## Uncomment this to print the basis set info at the end of file
+        #print('\n' + Solvation_gen)  ## Uncomment this to print the Generic Solvent at the end of file
         print('\n')
         sys.stdout.close()
         sys.stdout = output_file
@@ -189,9 +228,9 @@ class WriteOutputFile(object):
         # Find the total number of atoms in the molecule
         n_atoms = len(geometry)
         output_file3 = sys.stdout
-        sys.stdout = open(self.filename+'R'+'.xyz', 'w')
+        sys.stdout = open(self.filename+'.xyz', 'w')
         print(n_atoms)
-        print('XYZ Coordinates of the given molecule')
+        print('Charge = ', Charge, 'Multiplicity =', Multiplicity, 'SCF Energy = ', SCF_energy, 'au')
         #Below are the xyz coordinates
         for i in geometry:
             print("{:<3}  {: .8f}  {: .8f}  {: .8f}".format(i[0], i[1], i[2], i[3]))
@@ -212,19 +251,41 @@ class WriteOutputFile(object):
 # Specify the output file
 # Take the input file in the first argument. Uncomment below if you want to use the script in linux with file in the first argument
 output_file = sys.argv[1]
-#output_file = 'file_opt.log'
-#output_file = 'c60.out'
+#output_file = 'imidazolium.log'
+#output_file = 'sulphate.log'
 
 # Molecule is a variable that runs the class ExtractCoords
 molecule = ExtractCoords(output_file)
+all_energies = molecule.extractEnergies(output_file) # This list contains all the energies extracted above
+SCF_energy = all_energies[2]
+Charge = all_energies[0]
+Multiplicity = all_energies[1]
+##################################################################################
+################# Below Data is to be Changed as per Requirement #################
+##################################################################################
+suffix_filename = '1'
+Route_Card_Gaussian = '#p freq=raman b3lyp/6-311+g(d,p) empiricaldispersion=gd3bj int=ultrafine scf=conver=9'
+Gen_Basis = """\
+C H N Cl 0
+6-31G(d,p)
+****
+I 0
+LanL2DZ
+****
+
+I 0
+LanL2DZ"""
+Solvation_gen='eps=11.4 epsinf=1.40 HBondAcidity=0.0 HBondBasicity=0.0 SurfaceTensionAtInterface=70.24 CarbonAromaticity=0.1765 ElectronegativeHalogenicity=0.3529'
+#print("Here is the SCF Energy",SCF_energy)
+#print("Charge on the molecule is: ", Charge)
+#print("Multiplicity on the molecule is: ", Multiplicity)
 
 # Define a list to store the extracted structure from the output file
 geometry = molecule.extractCoordinates(output_file)
-
 # Print the extracted coordinates
 #print('The total number of atoms in the given molecule are:', n_atoms, '\n')
-for i in geometry:
-    print("{:<3}  {: .8f}  {: .8f}  {: .8f}".format(i[0], i[1], i[2], i[3]))
+#for i in geometry:
+#    print("{:<3}  {: .8f}  {: .8f}  {: .8f}".format(i[0], i[1], i[2], i[3]))
 
 #========================================================================================#
 write_output = WriteOutputFile(geometry, output_file) # Class to write the extracted geometry to a file
@@ -233,9 +294,9 @@ write_output = WriteOutputFile(geometry, output_file) # Class to write the extra
 write_output.xyzFile(geometry) # Write to an xyz file
 
 #========================================================================================#
-Stamp_Hashmi()
+#Stamp_Hashmi()
 #-----------------------------------#
 # A Script by Muhammad Ali Hashmi   #
-# muhammad.hashmi@vuw.ac.nz         #
+# compchem394@gmail.com             #
 #-----------------------------------#
 
