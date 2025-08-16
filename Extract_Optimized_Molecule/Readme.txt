@@ -3,4 +3,4 @@ The Cartesian coordinates of the optimized structure can be exported to an xyz f
 It can take the input file as a first argument. The general usage is:
 python3 Extract_Optimized_Molecule_Gaussian+ORCA.py c60.out
 
-If you have any questions, I can be reached at my email (i4hashmi@hotmail.com)
+If you have any questions, I can be reached at my email (compchem394@gmail.com)
